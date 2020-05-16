@@ -12,7 +12,7 @@ void print_packet(u_char *arg, const struct pcap_pkthdr* pkthdr,
         printf("%c ",packet[i]);
       else
         printf(" . ");
-      if((i % 16 == 0 && i != 0) || i == pkthdr->len-1)
+      if((i % 16 == 0 && i != 0) || i == pkthdr->len - 1)
         printf("\n");
     }
 }

@@ -1,15 +1,16 @@
 #include "sniff.h"
 
 int main(int argc, char *argv[]) {
-  char *dev;
-  char errbuf[PCAP_ERRBUF_SIZE];
-  pcap_t* descr;
+  char *dev;                     /* Capture device name                  */
+  char errbuf[PCAP_ERRBUF_SIZE]; /* Error buffer                         */
+  pcap_t* descr;                 /*                                      */
+  struct bpf_program fp;         /* Compiled filter program (expression) */
+  bpf_u_int32 maskp;             /* Subnet mask                          */
+  bpf_u_int32 netp;              /* IP                                   */
+
   // const u_char *packet;
   // struct pcap_pkthdr hdr;
   // struct ether_header *eptr; /* net/ethernet.h        */
-  struct bpf_program fp;        /* hold compiled program */
-  bpf_u_int32 maskp;            /* subnet mask           */
-  bpf_u_int32 netp;             /* ip                    */
 
   /* Requires filter argument */
   if(argc != 2) {
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
   pcap_lookupnet(dev, &netp, &maskp, errbuf);
 
   /* Open device for reading in promiscuous mode */
-  descr = pcap_open_live(dev, BUFSIZ, 1,-1, errbuf);
+  descr = pcap_open_live(dev, BUFSIZ, 1, -1, errbuf);
   if(descr == NULL) {
     printf("pcap_open_live(): %s\n", errbuf);
     exit(1);
