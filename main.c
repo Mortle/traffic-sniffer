@@ -1,5 +1,7 @@
 #include "sniff.h"
 
+#define NUM_PACKETS 5
+
 int main(int argc, char *argv[]) {
   char *dev;                     /* Capture device name                  */
   char errbuf[PCAP_ERRBUF_SIZE]; /* Error buffer                         */
@@ -36,6 +38,12 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  /* Make sure we're capturing on an Ethernet device */
+  if (pcap_datalink(descr) != DLT_EN10MB) {
+    fprintf(stderr, "%s is not an Ethernet\n", dev);
+    exit(1);
+  }
+
   /* Compile the filter expression */
   if(pcap_compile(descr, &fp, argv[1], 0, netp) == -1) {
     fprintf(stderr, "Error calling pcap_compile\n");
@@ -49,7 +57,10 @@ int main(int argc, char *argv[]) {
   }
 
   /* Loop for callback function */
-  pcap_loop(descr, -1, print_packet, NULL);
+  pcap_loop(descr, NUM_PACKETS, print_packet, NULL);
+
+  pcap_freecode(&fp);
+  pcap_close(descr);
 
   return 0;
 }
