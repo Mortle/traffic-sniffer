@@ -1,6 +1,7 @@
 #ifndef SNIFFER_H
 #define SNIFFER_H
 
+#include <ncurses.h>
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +37,6 @@ void print_payload(const char *payload, int len);
 void print_hex_ascii_line(const u_char *payload, int len, int offset);
 
 /* Presents essential functionality using pcap library */
-void sniffer();
+void sniffer(char *filter, char *device, int num_packets);
 
 #endif

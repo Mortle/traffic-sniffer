@@ -1,8 +1,7 @@
-PKGCONFIG = $(shell which pkg-config)
 TARGET = prog
-LIBS = -lm -lpcap $(shell $(PKGCONFIG) --libs gtk+-3.0)
+LIBS = -lm -lpcap -lncurses
 CC = gcc
-CFLAGS = -g -Wall $(shell $(PKGCONFIG) --cflags gtk+-3.0)
+CFLAGS = -g -Wall
 
 .PHONY: default all clean
 
