@@ -38,6 +38,7 @@ void print_payload(const char *payload, int len);
 void print_hex_ascii_line(const u_char *payload, int len, int offset);
 
 /* Presents essential functionality using pcap library */
-void sniffer(WINDOW *window, char *filter, char *device, int num_packets);
+void sniffer(WINDOW *window, FILE *f, char *filter, char *device,
+  int num_packets);
 
 #endif

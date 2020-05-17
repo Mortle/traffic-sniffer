@@ -39,6 +39,7 @@ struct sniff_tcp {
 };
 
 WINDOW *win;
+FILE *f;
 
 void process_packet(u_char *args, const struct pcap_pkthdr *header,
   const u_char *packet) {
@@ -53,7 +54,9 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header,
 	int size_tcp;
 	int size_payload;
 
-	wprintw(win, "\nPacket %d:\n", count++);
+	wprintw(win, "Processing packet %d...\n", count);
+  fprintf(f, "\nPacket %d: \n", count);
+  count++;
   wrefresh(win);
 
 	/* Define/compute IP header offset */
@@ -65,30 +68,28 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header,
 		return;
 	}
 
-	/* print source and destination IP addresses */
-	wprintw(win, "       From: %s\n", inet_ntoa(ip->ip_src));
-	wprintw(win, "         To: %s\n", inet_ntoa(ip->ip_dst));
-  wrefresh(win);
+	/* Print source and destination IP addresses */
+	fprintf(f, "       From: %s\n", inet_ntoa(ip->ip_src));
+	fprintf(f, "         To: %s\n", inet_ntoa(ip->ip_dst));
 
 	/* Determine protocol */
 	switch(ip->ip_p) {
 		case IPPROTO_TCP:
-			wprintw(win, "   Protocol: TCP\n");
+			fprintf(f, "   Protocol: TCP\n");
 			break;
 		case IPPROTO_UDP:
-			wprintw(win, "   Protocol: UDP\n");
+			fprintf(f, "   Protocol: UDP\n");
 			return;
 		case IPPROTO_ICMP:
-			wprintw(win, "   Protocol: ICMP\n");
+			fprintf(f, "   Protocol: ICMP\n");
 			return;
 		case IPPROTO_IP:
-			wprintw(win, "   Protocol: IP\n");
+			fprintf(f, "   Protocol: IP\n");
 			return;
 		default:
-			wprintw(win, "   Protocol: unknown\n");
+			fprintf(f, "   Protocol: unknown\n");
 			return;
 	}
-  wrefresh(win);
 
 	/* Define/compute TCP header offset */
 	tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
@@ -99,9 +100,8 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header,
 		return;
 	}
 
-	wprintw(win, "   Src port: %d\n", ntohs(tcp->th_sport));
-	wprintw(win, "   Dst port: %d\n", ntohs(tcp->th_dport));
-  wrefresh(win);
+	fprintf(f, "   Src port: %d\n", ntohs(tcp->th_sport));
+	fprintf(f, "   Dst port: %d\n", ntohs(tcp->th_dport));
 
 	/* Define/compute TCP payload (segment) offset */
 	payload = (char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
@@ -110,9 +110,8 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header,
 	size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
 
 	if (size_payload > 0) {
-		wprintw(win, "   Payload: %d bytes\n", size_payload);
-    wrefresh(win);
-		//print_payload(payload, size_payload);
+		fprintf(f, "   Payload: %d bytes\n", size_payload);
+		print_payload(payload, size_payload);
 	}
 
   return;
@@ -158,46 +157,48 @@ void print_hex_ascii_line(const u_char *payload, int len, int offset) {
 	int gap;
 	const u_char *ch;
 
-	printf("%05d   ", offset); /* Line offset */
+	fprintf(f, "%05d   ", offset); /* Line offset */
 
 	ch = payload;
 	for(i = 0; i < len; i++) {
-		printf("%02x ", *ch);
+		fprintf(f, "%02x ", *ch);
 		ch++;
 
 		if (i == 7)
-			printf(" ");
+			fprintf(f, " ");
 	}
 
 	if (len < 8)
-		printf(" ");
+		fprintf(f, " ");
 
 	if (len < 16) {
 		gap = 16 - len;
 		for (i = 0; i < gap; i++) {
-			printf("   ");
+			fprintf(f, "   ");
 		}
 	}
-	printf("   ");
+	fprintf(f, "   ");
 
 	/* Ascii if printable */
 	ch = payload;
 	for(i = 0; i < len; i++) {
 		if (isprint(*ch))
-			printf("%c", *ch);
+			fprintf(f, "%c", *ch);
 		else
-			printf(".");
+			fprintf(f, ".");
 		ch++;
 	}
 
-	printf("\n");
+	fprintf(f, "\n");
 
   return;
 }
 
-void sniffer(WINDOW *window, char *filter, char *device, int num_packets) {
+void sniffer(WINDOW *window, FILE *file, char *filter, char *device,
+  int num_packets) {
+
+  f = file;
   win = window;
-  wprintw(win, "Started capturing...\n");
 
   char errbuf[PCAP_ERRBUF_SIZE]; /* Error buffer                         */
   pcap_t* descr;                 /*                                      */
@@ -210,7 +211,7 @@ void sniffer(WINDOW *window, char *filter, char *device, int num_packets) {
     device = pcap_lookupdev(errbuf);
 
     if(device == NULL) {
-      wprintw(win, "%s\n", errbuf);
+      wprintw(win, "%s\nPress any button to exit...", errbuf);
       wrefresh(win);
       return;
     }
@@ -222,28 +223,31 @@ void sniffer(WINDOW *window, char *filter, char *device, int num_packets) {
   /* Open device for reading in promiscuous mode */
   descr = pcap_open_live(device, BUFSIZ, 1, -1, errbuf);
   if(descr == NULL) {
-    wprintw(win, "pcap_open_live(): %s\n", errbuf);
+    wprintw(win, "pcap_open_live(): %s\nPress any button to exit...", errbuf);
     wrefresh(win);
     return;
   }
 
   /* Make sure we're capturing on an Ethernet device */
   if (pcap_datalink(descr) != DLT_EN10MB) {
-    wprintw(win, "%s is not an Ethernet\n", device);
+    wprintw(win,
+      "%s is not an Ethernet. Press any button to exit...\n",
+      device
+    );
     wrefresh(win);
     return;
   }
 
   /* Compile the filter expression */
   if(pcap_compile(descr, &fp, filter, 0, netp) == -1) {
-    wprintw(win, "Error calling pcap_compile\n");
+    wprintw(win, "Error calling pcap_compile. Press any button to exit...\n");
     wrefresh(win);
     return;;
   }
 
   /* Set the filter */
   if(pcap_setfilter(descr, &fp) == -1) {
-    wprintw(win, "Error setting filter\n");
+    wprintw(win, "Error setting filter. Press any button to exit...\n");
     wrefresh(win);
     return;
   }
@@ -253,6 +257,14 @@ void sniffer(WINDOW *window, char *filter, char *device, int num_packets) {
 
   pcap_freecode(&fp);
   pcap_close(descr);
+
+  wprintw(
+    win,
+    "\n%d captured packet(s) were printed in specified file. \
+    \nPress any button to exit...",
+    num_packets
+  );
+  wrefresh(win);
 
   return;
 }

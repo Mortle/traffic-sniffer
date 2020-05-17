@@ -68,14 +68,26 @@ int main(int argc, char *argv[]) {
 
   curs_set(0);
 
+  FILE *f = fopen(file_name, "w");
+  if (f == NULL || !file_name[0]) {
+     wprintw(info_win, "Error opening file. Press any button to exit...");
+     wrefresh(info_win);
+     getch();
+     return 0;
+  }
+
   if (packet_num > 0) {
-    sniffer(info_win, filter_exp, device, packet_num);
+    wprintw(info_win, "Started capturing...\n");
+    wrefresh(info_win);
+    sniffer(info_win, f, filter_exp, device, packet_num);
   } else {
-    mvwprintw(info_win, 1, 1, "Press any button to exit...");
+    wprintw(info_win, "Invalid packets number. Press any button to exit...");
     wrefresh(info_win);
   }
-  getch();
 
+  fclose(f);
+
+  getch();
   endwin();
 
   return 0;
