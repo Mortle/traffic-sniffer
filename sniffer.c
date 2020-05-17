@@ -194,18 +194,13 @@ void sniffer(char *filter, char *device, int num_packets) {
   bpf_u_int32 netp;              /* IP                                   */
 
   /* Get device */
-  if(device == NULL) {
+  if(!device[0]) {
     device = pcap_lookupdev(errbuf);
 
     if(device == NULL) {
       fprintf(stderr, "%s\n", errbuf);
-      exit(1);
+      return;
     }
-  }
-
-  /* Get filter */
-  if (filter == NULL) {
-    filter = "ip";
   }
 
   /* Get the network address and mask */
@@ -215,25 +210,25 @@ void sniffer(char *filter, char *device, int num_packets) {
   descr = pcap_open_live(device, BUFSIZ, 1, -1, errbuf);
   if(descr == NULL) {
     printf("pcap_open_live(): %s\n", errbuf);
-    exit(1);
+    return;
   }
 
   /* Make sure we're capturing on an Ethernet device */
   if (pcap_datalink(descr) != DLT_EN10MB) {
     fprintf(stderr, "%s is not an Ethernet\n", device);
-    exit(1);
+    return;
   }
 
   /* Compile the filter expression */
   if(pcap_compile(descr, &fp, filter, 0, netp) == -1) {
     fprintf(stderr, "Error calling pcap_compile\n");
-    exit(1);
+    return;;
   }
 
   /* Set the filter */
   if(pcap_setfilter(descr, &fp) == -1) {
     fprintf(stderr, "Error setting filter\n");
-    exit(1);
+    return;
   }
 
   /* Loop for callback function */

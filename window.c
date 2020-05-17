@@ -4,7 +4,8 @@
 
 int main(int argc, char *argv[]) {
 
-  char filter_exp[50], device[10], packet_num_str[5], file_name[30];
+  char filter_exp[50] = {0}, device[10] = {0}, packet_num_str[5] = {0},
+    file_name[30] = {0};
   int packet_num = 0;
 
   initscr();
@@ -28,6 +29,12 @@ int main(int argc, char *argv[]) {
   wrefresh(filter_win);
   mvwscanw(filter_win, 2, 1, "%s", filter_exp);
 
+  if(!filter_exp[0]) {
+    strcpy(filter_exp, "ip");
+  }
+  mvwprintw(filter_win, 2, 1, "%s", filter_exp);
+  wrefresh(filter_win);
+
   /* Packets to capture number window */
   WINDOW *packets_win = newwin(3, 20, 21, 40);
   refresh();
@@ -39,8 +46,6 @@ int main(int argc, char *argv[]) {
   /* Process invalid input */
   if (packet_num > MAX_PACKETS) {
     packet_num = MAX_PACKETS;
-  } else if (packet_num < 0) {
-    packet_num = 0;
   }
   wclear(packets_win);
   mvwprintw(packets_win, 1, 1, "Packet num:");
@@ -56,13 +61,9 @@ int main(int argc, char *argv[]) {
 
   curs_set(0);
 
-  // mvwprintw(info_win, 1, 1, "%s   %s  %d", device, filter_exp, packet_num);
-  // wrefresh(info_win);
-
-
-
-
-  // sniffer(filter_exp, device, num_packets);
+  if (packet_num > 0) {
+    sniffer(filter_exp, device, packet_num);
+  }
 
   getch();
   endwin();
