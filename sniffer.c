@@ -1,4 +1,4 @@
-#include "sniff.h"
+#include "sniffutils.h"
 
 #define NUM_PACKETS 5
 
@@ -9,10 +9,6 @@ int main(int argc, char *argv[]) {
   struct bpf_program fp;         /* Compiled filter program (expression) */
   bpf_u_int32 maskp;             /* Subnet mask                          */
   bpf_u_int32 netp;              /* IP                                   */
-
-  // const u_char *packet;
-  // struct pcap_pkthdr hdr;
-  // struct ether_header *eptr; /* net/ethernet.h        */
 
   /* Requires filter argument */
   if(argc != 2) {
@@ -57,7 +53,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Loop for callback function */
-  pcap_loop(descr, NUM_PACKETS, print_packet, NULL);
+  pcap_loop(descr, NUM_PACKETS, process_packet, NULL);
 
   pcap_freecode(&fp);
   pcap_close(descr);
