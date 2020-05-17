@@ -38,6 +38,8 @@ struct sniff_tcp {
         u_short th_urp;                 /* Urgent pointer */
 };
 
+WINDOW *win;
+
 void process_packet(u_char *args, const struct pcap_pkthdr *header,
   const u_char *packet) {
 
@@ -51,49 +53,55 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header,
 	int size_tcp;
 	int size_payload;
 
-	printf("\nPacket number %d:\n", count++);
+	wprintw(win, "\nPacket %d:\n", count++);
+  wrefresh(win);
 
 	/* Define/compute IP header offset */
 	ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
 	size_ip = IP_HL(ip)*4;
 	if (size_ip < 20) {
-		printf("   * Invalid IP header length: %u bytes\n", size_ip);
+		wprintw(win, "Invalid IP header length: %u bytes\n", size_ip);
+    wrefresh(win);
 		return;
 	}
 
 	/* print source and destination IP addresses */
-	printf("       From: %s\n", inet_ntoa(ip->ip_src));
-	printf("         To: %s\n", inet_ntoa(ip->ip_dst));
+	wprintw(win, "       From: %s\n", inet_ntoa(ip->ip_src));
+	wprintw(win, "         To: %s\n", inet_ntoa(ip->ip_dst));
+  wrefresh(win);
 
 	/* Determine protocol */
 	switch(ip->ip_p) {
 		case IPPROTO_TCP:
-			printf("   Protocol: TCP\n");
+			wprintw(win, "   Protocol: TCP\n");
 			break;
 		case IPPROTO_UDP:
-			printf("   Protocol: UDP\n");
+			wprintw(win, "   Protocol: UDP\n");
 			return;
 		case IPPROTO_ICMP:
-			printf("   Protocol: ICMP\n");
+			wprintw(win, "   Protocol: ICMP\n");
 			return;
 		case IPPROTO_IP:
-			printf("   Protocol: IP\n");
+			wprintw(win, "   Protocol: IP\n");
 			return;
 		default:
-			printf("   Protocol: unknown\n");
+			wprintw(win, "   Protocol: unknown\n");
 			return;
 	}
+  wrefresh(win);
 
 	/* Define/compute TCP header offset */
 	tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
 	size_tcp = TH_OFF(tcp)*4;
 	if (size_tcp < 20) {
-		printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
+		wprintw(win, "Invalid TCP header length: %u bytes\n", size_tcp);
+    wrefresh(win);
 		return;
 	}
 
-	printf("   Src port: %d\n", ntohs(tcp->th_sport));
-	printf("   Dst port: %d\n", ntohs(tcp->th_dport));
+	wprintw(win, "   Src port: %d\n", ntohs(tcp->th_sport));
+	wprintw(win, "   Dst port: %d\n", ntohs(tcp->th_dport));
+  wrefresh(win);
 
 	/* Define/compute TCP payload (segment) offset */
 	payload = (char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
@@ -102,8 +110,9 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header,
 	size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
 
 	if (size_payload > 0) {
-		printf("   Payload (%d bytes):\n", size_payload);
-		print_payload(payload, size_payload);
+		wprintw(win, "   Payload: %d bytes\n", size_payload);
+    wrefresh(win);
+		//print_payload(payload, size_payload);
 	}
 
   return;
@@ -186,7 +195,10 @@ void print_hex_ascii_line(const u_char *payload, int len, int offset) {
   return;
 }
 
-void sniffer(char *filter, char *device, int num_packets) {
+void sniffer(WINDOW *window, char *filter, char *device, int num_packets) {
+  win = window;
+  wprintw(win, "Started capturing...\n");
+
   char errbuf[PCAP_ERRBUF_SIZE]; /* Error buffer                         */
   pcap_t* descr;                 /*                                      */
   struct bpf_program fp;         /* Compiled filter program (expression) */
@@ -198,7 +210,8 @@ void sniffer(char *filter, char *device, int num_packets) {
     device = pcap_lookupdev(errbuf);
 
     if(device == NULL) {
-      fprintf(stderr, "%s\n", errbuf);
+      wprintw(win, "%s\n", errbuf);
+      wrefresh(win);
       return;
     }
   }
@@ -209,25 +222,29 @@ void sniffer(char *filter, char *device, int num_packets) {
   /* Open device for reading in promiscuous mode */
   descr = pcap_open_live(device, BUFSIZ, 1, -1, errbuf);
   if(descr == NULL) {
-    printf("pcap_open_live(): %s\n", errbuf);
+    wprintw(win, "pcap_open_live(): %s\n", errbuf);
+    wrefresh(win);
     return;
   }
 
   /* Make sure we're capturing on an Ethernet device */
   if (pcap_datalink(descr) != DLT_EN10MB) {
-    fprintf(stderr, "%s is not an Ethernet\n", device);
+    wprintw(win, "%s is not an Ethernet\n", device);
+    wrefresh(win);
     return;
   }
 
   /* Compile the filter expression */
   if(pcap_compile(descr, &fp, filter, 0, netp) == -1) {
-    fprintf(stderr, "Error calling pcap_compile\n");
+    wprintw(win, "Error calling pcap_compile\n");
+    wrefresh(win);
     return;;
   }
 
   /* Set the filter */
   if(pcap_setfilter(descr, &fp) == -1) {
-    fprintf(stderr, "Error setting filter\n");
+    wprintw(win, "Error setting filter\n");
+    wrefresh(win);
     return;
   }
 

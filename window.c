@@ -1,6 +1,6 @@
 #include "sniffer.h"
 
-#define MAX_PACKETS 999
+#define MAX_PACKETS 1000
 
 int main(int argc, char *argv[]) {
 
@@ -10,9 +10,9 @@ int main(int argc, char *argv[]) {
 
   initscr();
 
+  /* Primary window */
   WINDOW *info_win = newwin(21, 80, 0, 0);
   refresh();
-  box(info_win, 0, 0);
   wrefresh(info_win);
 
   /* Device window */
@@ -22,6 +22,12 @@ int main(int argc, char *argv[]) {
   wrefresh(dev_win);
   mvwscanw(dev_win, 2, 1, "%s", device);
 
+  /* Default device */
+  if(!device[0]) {
+    mvwprintw(dev_win, 2, 1, "default");
+    wrefresh(dev_win);
+  }
+
   /* Filter expression window */
   WINDOW *filter_win = newwin(3, 20, 21, 20);
   refresh();
@@ -29,6 +35,7 @@ int main(int argc, char *argv[]) {
   wrefresh(filter_win);
   mvwscanw(filter_win, 2, 1, "%s", filter_exp);
 
+  /* Default filter */
   if(!filter_exp[0]) {
     strcpy(filter_exp, "ip");
   }
@@ -62,10 +69,13 @@ int main(int argc, char *argv[]) {
   curs_set(0);
 
   if (packet_num > 0) {
-    sniffer(filter_exp, device, packet_num);
+    sniffer(info_win, filter_exp, device, packet_num);
+  } else {
+    mvwprintw(info_win, 1, 1, "Press any button to exit...");
+    wrefresh(info_win);
   }
-
   getch();
+
   endwin();
 
   return 0;
